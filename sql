@@ -138,71 +138,76 @@ FROM contracts c
 LEFT JOIN contract_comment cc ON c.contract_id = cc.contract_id
 GROUP BY c.contract_id;
 
+CREATE OR REPLACE VIEW vw_contracts_created_by_kov AS
+SELECT
+    c.phone_number
+FROM contracts c
+WHERE c.created_by LIKE '%ков';
+
+
+-- Создадим схему для функций
+CREATE SCHEMA contract_schema;
 
 ------------------------------------------------------------------------------
 -- Функция добавления комментария
--- Входные данные: ID договора, текст комментария
 ------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION add_comment(
+CREATE OR REPLACE FUNCTION contract_schema.add_comment(
     p_contract_id    BIGINT,
     p_comment_text   TEXT
 )
 RETURNS VOID
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS
 $$
 BEGIN
-    INSERT INTO contract_comment (contract_id, comment_text)
-    VALUES (p_contract_id, p_comment_text);
+    IF NOT EXISTS (SELECT 1 FROM contracts WHERE contract_id = p_contract_id) THEN
+        RAISE EXCEPTION 'Договор с ID % не существует', p_contract_id;
+    END IF;
+    INSERT INTO contract_comment (contract_id, comment_text) VALUES (p_contract_id, p_comment_text);
 END;
 $$;
 
 ------------------------------------------------------------------------------
--- Функция обновления комментариев по договору
--- Входные данные: ID договора, текст комментария
--- ПРИМЕЧАНИЕ: без комментария-комментария (comment_id) мы обновим все строки,
--- принадлежащие этому договору. Если нужна более тонкая логика, её надо уточнять.
+-- Функция обновления комментария
 ------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION update_comment(
-    p_contract_id    BIGINT,
+CREATE OR REPLACE FUNCTION contract_schema.update_comment(
+    p_comment_id     BIGINT,
     p_comment_text   TEXT
 )
 RETURNS VOID
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS
 $$
 BEGIN
-    UPDATE contract_comment
-    SET comment_text = p_comment_text
-    WHERE contract_id = p_contract_id;
+    UPDATE contract_comment SET comment_text = p_comment_text WHERE comment_id = p_comment_id;
 END;
 $$;
 
 ------------------------------------------------------------------------------
 -- Функция удаления комментариев по договору
--- Входные данные: ID договора
 ------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION delete_comment(
+CREATE OR REPLACE FUNCTION contract_schema.delete_comment(
     p_contract_id BIGINT
 )
 RETURNS VOID
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS
 $$
 BEGIN
-    DELETE FROM contract_comment
-    WHERE contract_id = p_contract_id;
+    DELETE FROM contract_comment WHERE contract_id = p_contract_id;
 END;
 $$;
 
 ------------------------------------------------------------------------------
--- Функция, возвращающая количество договоров,
--- по которым создано 2 и более комментария за текущий период
--- "Текущий период" интерпретируем как "текущий месяц".
+-- Функция для количества договоров с 2+ комментариями за текущий период
 ------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION get_contracts_with_2plus_comments_current_period()
+CREATE OR REPLACE FUNCTION contract_schema.get_contracts_with_2plus_comments_current_period()
 RETURNS INTEGER
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS
 $$
 DECLARE
@@ -213,11 +218,10 @@ BEGIN
     FROM (
         SELECT contract_id
         FROM contract_comment
-        WHERE created_at >= date_trunc('month', current_timestamp)
+        WHERE created_at >= date_trunc('week', current_timestamp)
         GROUP BY contract_id
         HAVING COUNT(*) >= 2
     ) sub;
-
     RETURN v_count;
 END;
 $$;
