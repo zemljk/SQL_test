@@ -1,8 +1,8 @@
--- 1) Создадим последовательность для ID договора
+-- Создадим последовательность для ID договора
 DROP SEQUENCE IF EXISTS seq_contracts;
 CREATE SEQUENCE seq_contracts START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 
--- 2) Создадим таблицу CONTRACTS
+-- Создадим таблицу CONTRACTS
 
 CREATE TABLE contracts
 (
@@ -17,7 +17,7 @@ CREATE TABLE contracts
     CONSTRAINT pk_contracts PRIMARY KEY (contract_id)
 );
 
--- 3) Функция-триггер для заполнения contract_id и служебных полей (created/updated)
+-- Функция-триггер для заполнения contract_id и служебных полей (created/updated)
 CREATE OR REPLACE FUNCTION contracts_bi()
 RETURNS TRIGGER AS
 $$
@@ -46,7 +46,7 @@ END;
 $$
 LANGUAGE plpgsql;
 
--- 4) Триггер, который вешаем на таблицу CONTRACTS
+-- Триггер, который вешаем на таблицу CONTRACTS
 CREATE TRIGGER tr_contracts_bi
 BEFORE INSERT OR UPDATE
 ON contracts
@@ -54,11 +54,11 @@ FOR EACH ROW
 EXECUTE FUNCTION contracts_bi();
 
 
--- 1) Создаём последовательность для комментариев
+-- Создаём последовательность для комментариев
 DROP SEQUENCE IF EXISTS seq_contract_comment;
 CREATE SEQUENCE seq_contract_comment START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 
--- 2) Создаём таблицу CONTRACT_COMMENT
+-- Создаём таблицу CONTRACT_COMMENT
 CREATE TABLE contract_comment
 (
     comment_id    BIGINT NOT NULL,            -- Уникальный ключ комментария
@@ -76,7 +76,7 @@ CREATE TABLE contract_comment
         ON DELETE CASCADE
 );
 
--- 3) Функция-триггер для заполнения comment_id и служебных полей (created/updated)
+-- Функция-триггер для заполнения comment_id и служебных полей (created/updated)
 CREATE OR REPLACE FUNCTION contract_comment_bi()
 RETURNS TRIGGER AS
 $$
@@ -103,7 +103,7 @@ END;
 $$
 LANGUAGE plpgsql;
 
--- 4) Триггер, который вешаем на таблицу CONTRACT_COMMENT
+-- Триггер, который вешаем на таблицу CONTRACT_COMMENT
 CREATE TRIGGER tr_contract_comment_bi
 BEFORE INSERT OR UPDATE
 ON contract_comment
@@ -148,9 +148,8 @@ WHERE c.created_by LIKE '%ков';
 -- Создадим схему для функций
 CREATE SCHEMA contract_schema;
 
-------------------------------------------------------------------------------
 -- Функция добавления комментария
-------------------------------------------------------------------------------
+
 CREATE OR REPLACE FUNCTION contract_schema.add_comment(
     p_contract_id    BIGINT,
     p_comment_text   TEXT
@@ -168,9 +167,9 @@ BEGIN
 END;
 $$;
 
-------------------------------------------------------------------------------
+
 -- Функция обновления комментария
-------------------------------------------------------------------------------
+
 CREATE OR REPLACE FUNCTION contract_schema.update_comment(
     p_comment_id     BIGINT,
     p_comment_text   TEXT
@@ -185,9 +184,9 @@ BEGIN
 END;
 $$;
 
-------------------------------------------------------------------------------
+
 -- Функция удаления комментариев по договору
-------------------------------------------------------------------------------
+
 CREATE OR REPLACE FUNCTION contract_schema.delete_comment(
     p_contract_id BIGINT
 )
@@ -201,9 +200,8 @@ BEGIN
 END;
 $$;
 
-------------------------------------------------------------------------------
 -- Функция для количества договоров с 2+ комментариями за текущий период
-------------------------------------------------------------------------------
+
 CREATE OR REPLACE FUNCTION contract_schema.get_contracts_with_2plus_comments_current_period()
 RETURNS INTEGER
 LANGUAGE plpgsql
